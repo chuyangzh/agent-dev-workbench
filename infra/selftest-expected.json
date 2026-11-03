@@ -1,0 +1,71 @@
+{
+  "_about": "Known answers for `stack.ps1 selftest`, computed by hand from probe/fixtures/synthetic (SYNTHETIC data) plus one in-memory variant: vscode-copilot.metrics.json re-sent as service.name github-copilot under task fixture-task-2 (see derived_fixtures in workbench.py). Keys are <dashboard panel id><refId>. Token totals must match exactly: they prove the canonical-source, anchored-increase and no-double-count rules end to end, and that the github-copilot runtime is labelled neutrally and never mixed into the VS Code extension's rows.",
+  "coverage_panels": [101],
+  "constant_panels": [503],
+  "panels": {
+    "101A": {"rows": [
+      {"labels": {"harness": "vscode-copilot-chat", "signal": "gen_ai.client.token.usage"}, "value": 4},
+      {"labels": {"harness": "github-copilot-runtime", "signal": "gen_ai.client.token.usage"}, "value": 4},
+      {"labels": {"harness": "claude-code", "signal": "claude_code.token.usage"}, "value": 6},
+      {"labels": {"harness": "vscode-copilot-chat", "signal": "copilot_chat.session.count"}, "value": -1},
+      {"labels": {"harness": "codex", "signal": "codex.* metrics (any)"}, "value": -1}
+    ]},
+    "102A": {"rows": [{"labels": {}, "value": 8}]},
+    "103A": {"rows": [{"labels": {"workbench_harness": "claude-code"}, "value": 6}]},
+    "104A": {"rows": [{"labels": {"workbench_harness": "claude-code"}, "value": 1}],
+             "absent": [{"workbench_harness": "vscode-copilot-chat"}, {"workbench_harness": "copilot-cli"}]},
+    "105A": {"rows": [{"labels": {"workbench_harness": "claude-code"}, "value": 1}]},
+    "106A": {"rows": [
+      {"labels": {"workbench_harness": "vscode-copilot-chat", "gen_ai_request_model": "synthetic-model-a"}, "value": 3},
+      {"labels": {"workbench_harness": "github-copilot-runtime", "gen_ai_request_model": "synthetic-model-a"}, "value": 3}
+    ]},
+    "106B": {"rows": [{"labels": {"model": "synthetic-claude-model"}, "value": 2}]},
+    "201A": {"rows": [
+      {"labels": {"workbench_task_id": "fixture-task-1", "workbench_harness": "vscode-copilot-chat", "token_type": "input"}, "value": 2100},
+      {"labels": {"workbench_task_id": "fixture-task-1", "workbench_harness": "vscode-copilot-chat", "token_type": "output"}, "value": 420},
+      {"labels": {"workbench_task_id": "fixture-task-2", "workbench_harness": "github-copilot-runtime", "token_type": "input"}, "value": 2100},
+      {"labels": {"workbench_task_id": "fixture-task-2", "workbench_harness": "github-copilot-runtime", "token_type": "output"}, "value": 420},
+      {"labels": {"workbench_task_id": "fixture-task-1", "workbench_harness": "claude-code", "token_type": "input"}, "value": 1600},
+      {"labels": {"workbench_task_id": "fixture-task-1", "workbench_harness": "claude-code", "token_type": "output"}, "value": 380},
+      {"labels": {"workbench_task_id": "fixture-task-1", "workbench_harness": "claude-code", "token_type": "cacheRead"}, "value": 5000},
+      {"labels": {"workbench_task_id": "fixture-task-1", "workbench_harness": "claude-code", "token_type": "cacheCreation"}, "value": 800}
+    ],
+             "absent": [{"workbench_task_id": "fixture-task-2", "workbench_harness": "vscode-copilot-chat"},
+                        {"workbench_task_id": "fixture-task-1", "workbench_harness": "github-copilot-runtime"}]},
+    "301A": {"rows": [
+      {"labels": {"workbench_harness": "vscode-copilot-chat", "gen_ai_tool_name": "readFile", "success": "true"}, "value": 1},
+      {"labels": {"workbench_harness": "vscode-copilot-chat", "gen_ai_tool_name": "runCommand", "success": "false"}, "value": 1},
+      {"labels": {"workbench_harness": "vscode-copilot-chat", "gen_ai_tool_name": "runSubagent", "success": "true"}, "value": 1},
+      {"labels": {"workbench_harness": "github-copilot-runtime", "gen_ai_tool_name": "runCommand", "success": "false"}, "value": 1}
+    ]},
+    "302A": {"rows": [
+      {"labels": {"tool_name": "Bash", "success": "false"}, "value": 1},
+      {"labels": {"tool_name": "Read", "success": "true"}, "value": 1}
+    ]},
+    "303A": {"rows": [
+      {"labels": {"workbench_harness": "vscode-copilot-chat", "gen_ai_tool_name": "runCommand"}, "value": 1},
+      {"labels": {"workbench_harness": "vscode-copilot-chat", "gen_ai_tool_name": "readFile"}, "value": 0}
+    ]},
+    "303B": {"rows": [{"labels": {"tool_name": "Bash"}, "value": 1}, {"labels": {"tool_name": "Read"}, "value": 0}]},
+    "304A": {"rows": [{"labels": {"workbench_harness": "vscode-copilot-chat", "gen_ai_tool_name": "runCommand"}, "value": 1200}]},
+    "304C": {"rows": [{"labels": {"tool_name": "Bash"}, "value": 900}]},
+    "305C": {"rows": [{"labels": {"model": "synthetic-claude-model"}, "value": 2.85}]},
+    "306A": {"rows": [{"labels": {"workbench_harness": "vscode-copilot-chat", "gen_ai_agent_name": "GitHub Copilot Chat"}, "value": 1.5}]},
+    "306B": {"rows": [{"labels": {}, "value": 2}]},
+    "307B": {"rows": [{"labels": {"status_code": "529"}, "value": 1}]},
+    "402A": {"rows": [{"labels": {"gen_ai.agent.name": "explore"}, "value": null}]},
+    "403A": {"rows": [{"labels": {}, "value": 2100}]},
+    "404A": {"rows": [{"labels": {}, "value": 2700}]},
+    "405A": {"rows": [{"labels": {"query_source": "main"}, "value": 7300}, {"labels": {"query_source": "subagent"}, "value": 480}]},
+    "501A": {"rows": [
+      {"labels": {"workbench_harness": "vscode-copilot-chat"}, "value": 0.00252},
+      {"labels": {"workbench_harness": "github-copilot-runtime"}, "value": 0.00252},
+      {"labels": {"workbench_harness": "claude-code"}, "value": 0.00198}
+    ]},
+    "502A": {"rows": [
+      {"labels": {"workbench_harness": "vscode-copilot-chat"}, "value": 2520},
+      {"labels": {"workbench_harness": "github-copilot-runtime"}, "value": 2520},
+      {"labels": {"workbench_harness": "claude-code"}, "value": 1980}
+    ]}
+  }
+}

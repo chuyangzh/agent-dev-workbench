@@ -7,7 +7,7 @@
       "doc_last_updated": "2026-10-28",
       "installed": "VS Code 1.144.0 with built-in GitHub.copilot-chat 0.72.0 (manifest declares github.copilot.chat.otel.*)",
       "confidence": "documented; settings verified in the installed manifest; emission not yet captured",
-      "service_names": ["copilot-chat", "github-copilot"],
+      "service_names": ["copilot-chat"],
       "spans": ["invoke_agent", "chat", "execute_tool", "execute_hook"],
       "metrics": [
         "gen_ai.client.token.usage",
@@ -25,6 +25,15 @@
         "copilot_chat.tool.call",
         "copilot_chat.agent.turn"
       ]
+    },
+    "github-copilot-runtime": {
+      "source": "https://code.visualstudio.com/docs/agents/guides/monitoring-agents",
+      "installed": "Used by VS Code 1.144.0's embedded agent host (Copilot CLI sessions); a standalone Copilot CLI may also exist (not found on the agent shell's PATH)",
+      "confidence": "assumed: service.name github-copilot is shared by the standalone Copilot CLI and VS Code's embedded runtime, so the origin is not distinguishable from service.name; signal names assumed to follow the GenAI conventions; nothing captured yet",
+      "service_names": ["github-copilot"],
+      "spans": ["invoke_agent", "chat", "execute_tool"],
+      "metrics": ["gen_ai.client.token.usage", "gen_ai.client.operation.duration"],
+      "events": []
     },
     "claude-code": {
       "source": "https://code.claude.com/docs/en/monitoring-usage",

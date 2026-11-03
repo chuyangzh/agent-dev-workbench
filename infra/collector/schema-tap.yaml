@@ -1,0 +1,40 @@
+# Optional schema tap (agent-dev-workbench addition; not from hve-core).
+#
+# Merged on top of otel-collector.yaml only when the stack is started with
+# `stack.ps1 up -SchemaTap`. It adds a second set of pipelines that copy what
+# the collector RECEIVES, before any filtering, to the repo's probe receiver
+# on the host (probe/otel_probe.py, default 127.0.0.1:4319). The probe redacts
+# string values at ingest and reports attribute keys, types and hierarchy, so
+# the schema can be confirmed, including keys the allow-list would drop,
+# without storing their values. The storage pipelines are unchanged.
+#
+# The collector converts any client encoding (protobuf or JSON, HTTP or gRPC)
+# to OTLP/JSON here, which is the only encoding the probe accepts.
+# No retry and no queue: if the probe is not running, the copy is dropped and
+# storage is unaffected.
+
+exporters:
+  otlp_http/schema_tap:
+    endpoint: http://host.docker.internal:${env:ADW_PROBE_PORT}
+    encoding: json
+    compression: none
+    timeout: 5s
+    retry_on_failure:
+      enabled: false
+    sending_queue:
+      enabled: false
+
+service:
+  pipelines:
+    traces/schema_tap:
+      receivers: [otlp]
+      processors: [memory_limiter]
+      exporters: [otlp_http/schema_tap]
+    metrics/schema_tap:
+      receivers: [otlp]
+      processors: [memory_limiter]
+      exporters: [otlp_http/schema_tap]
+    logs/schema_tap:
+      receivers: [otlp]
+      processors: [memory_limiter]
+      exporters: [otlp_http/schema_tap]

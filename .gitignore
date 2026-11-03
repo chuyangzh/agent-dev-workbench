@@ -4,5 +4,12 @@
 # A reviewed schema snapshot can be copied to docs/schemas/captured/ instead.
 probe/captures/
 
+# Local monitoring stack: the Grafana login written by `infra/stack.ps1 init`,
+# any other env file, and verification/selftest output (it quotes stored values).
+infra/.env
+infra/.env.*
+!infra/.env.example
+infra/out/
+
 __pycache__/
 *.py[cod]

@@ -1,8 +1,15 @@
-# Telemetry design: milestone 1 (design and probe)
+# Telemetry design
 
-Status, 2026-11-03: design plus a working probe, tested on **synthetic fixtures
-only**. No real session has been captured yet. "Verified" below means checked on
-this machine. Everything else is labeled as documented or assumed.
+Status, 2026-11-03:
+
+- **Milestone 1:** this design plus a working probe.
+- **Milestone 2:** the local stack under `infra/`, set up and operated as described in [monitoring.md](monitoring.md).
+  - Verified end to end with **synthetic fixtures** (`stack.ps1 selftest`, 62/62 checks).
+  - The real VS Code capture is still pending; see [monitoring.md](monitoring.md#status-2026-11-03).
+
+"Verified" below means checked on this machine. Everything else is labeled as
+documented or assumed. Where milestone 2 changed the plan, the change is described
+in [Milestone 2 decisions](#milestone-2-decisions).
 
 ## Goal
 
@@ -43,7 +50,7 @@ Not inspected: authentication or credential files, Copilot and Codex sign-in sta
 | **Claude agent inside Copilot Chat** | Same schema: `invoke_agent claude` spans | — | Availability for this account. The page says managed settings disable it, and none are present. |
 | **Claude Code CLI** 2.1.317 | **Its own schema**: `claude_code.*` counters, `claude_code.*` events as OTLP logs, beta `claude_code.interaction` / `llm_request` / `tool` spans; `http/json` supported | Installed | Emission and exact attribute lists. Several came from a summarized read of a long docs page. |
 | **Codex CLI** 0.166.0 | Its own schema: `codex.*` log events, optional traces and metrics, from user-level `~/.codex/config.toml` `[otel]`; off by default | Installed (full path). The binary contains the documented `[otel]` keys and event names. `-c` overrides exist. | Emission, attribute names, `service.name`, and the exact `[otel]` TOML shape. The docs read was summarized, and string presence shows the code ships, not that a session emits it. |
-| Copilot CLI | Service `github-copilot`, `otlp-http` only | — | Presence unknown (not on the agent shell's PATH) |
+| GitHub Copilot runtime (Copilot CLI, standalone or as VS Code's embedded agent host) | Service `github-copilot`, `otlp-http` only. Stored as harness `github-copilot-runtime`, because `service.name` cannot tell the standalone CLI from the embedded runtime | VS Code 1.144.0 runs Copilot CLI sessions in its agent host (process and `~/.copilot/session-state` seen; contents not read) | Signal names, and any attribute that would distinguish the embedded runtime; standalone CLI presence unknown |
 
 So only Copilot Chat in VS Code emits the schema the VS Code docs describe.
 Claude Code and Codex, the two harnesses in the Orca handoff and both installed,
@@ -76,8 +83,10 @@ Neither tool is a backend.
    - VS Code: set through `github.copilot.chat.otel.resourceAttributes` (declared in the manifest; behavior unverified).
    - Codex: unknown.
 
-   The collector copies them onto metric data points so Prometheus can group by
-   them. Sessions that arrive without a task id go to an explicit `unattributed` bucket.
+   The collector copies the task id onto metric data points so Prometheus can group
+   by it. Sessions that arrive without a task id go to an explicit `unattributed` bucket.
+   Milestone 2 derives `workbench.harness` from `service.name` rather than trusting
+   the sender.
 3. **Normalization in the collector.** Extend the allow-list with the Claude Code
    and Codex keys the panels read, and add a `workbench.harness` label.
 4. **A workbench dashboard** next to hve-core's seed, specified below.
@@ -120,6 +129,9 @@ Neither tool is a backend.
   committed to `docs/schemas/captured/` with harness, version and date.
 
 ## Proposal: smallest local Grafana implementation (milestone 2)
+
+*This is the plan as written in milestone 1, kept for the record. What was built
+differs in the points listed under [Milestone 2 decisions](#milestone-2-decisions).*
 
 **Stack.** hve-core's two containers, unchanged in shape. The collector is the only
 OTLP ingress (`127.0.0.1:4317/4318`) and feeds `otel-lgtm` (Grafana `:3000`,
@@ -168,6 +180,28 @@ assumed. hve-core found that `gen_ai.client.operation.duration` has no unit suff
 show traces but have no metric queries, budget or coverage panels. The Azure path
 costs money and needs a cloud identity. A custom app would duplicate what LGTM
 already provides in one container.
+
+## Milestone 2 decisions
+
+These are changes from the proposal above, each made because of something
+measured on this machine.
+
+| Decision | Why |
+|---|---|
+| **Session IDs never become metric labels.** The proposal copied `session.id` to data points; the built collector drops it (and every other ID) from metrics. Sessions are counted from Loki events and listed from Tempo spans. | High-cardinality labels. IDs are fine on spans and logs, where they are join keys, not series. |
+| **`workbench.task.id` is the one ID on metrics**, validated to `[A-Za-z0-9._-]{1,64}` (else `invalid`), default `unattributed`. | The per-task token view needs it on the canonical token series. It is user-chosen, one value per piece of work (tens, not one per session), so the cardinality stays bounded. A per-session or random value would defeat this; the docs say so. |
+| **`workbench.harness` is derived from `service.name`** in the collector, not taken from the sender. | A mislabelled launcher cannot move data between harnesses. VS Code needs no extra setting. |
+| **Exact counter totals with `increase(x[range] anchored)`** plus `created-timestamp-zero-ingestion`. | On the fixtures, plain `increase()` reported 2,250 tokens for a counter that recorded 1,500 (Prometheus extrapolation). Anchored increase over a series that starts at a zero sample returned exactly 1,500. Both flags are Prometheus 3.13 features enabled in `compose.yaml`. |
+| **Metric units are kept** (hve-core overwrote them). Prometheus names therefore carry unit suffixes: `gen_ai_client_operation_duration_seconds_*`, `copilot_chat_tool_call_duration_milliseconds_*`, `claude_code_token_usage_tokens_total`. The token histogram (`{token}`) has no suffix. | The unit is an emitter constant, not content, and it decides the value scale (ms vs s). Names were confirmed from the store with the fixtures; hve-core's "no unit suffix" observation was made with units overwritten. |
+| **Prometheus and Tempo are not published on the host.** Reads go through Grafana's authenticated API. | otel-lgtm starts Prometheus with its OTLP and remote-write receivers enabled; a published 9090 would be a second, unfiltered ingest path. |
+| **Cost is dropped at the collector** (`claude_code.cost.usage`), not just left uncharted. | No cost claims; nothing to misread later. |
+| **Scrub statements use explicit OTTL contexts.** | As one flat list, the pinned collector ran the span statements in the `spanevent` context, so a span status message (the fixture's `CANARY-ERROR-PATH …`) reached Tempo. The selftest caught it. hve-core's own file was not retested here. |
+| **The coverage table's `-1` sentinel** (shown as *not seen*) is the only `or vector(...)` in the dashboard. | An expected signal that never arrived must be visibly missing, not 0 and not silently absent. |
+| **Synthetic data never enters the real store.** The selftest runs a separate compose project (`adw-selftest`, own volumes and ports) and deletes it afterwards. Data is also labeled `workbench_provenance`, and the dashboard defaults to `captured`. | Synthetic fixtures must stay clearly separate from real captured data. |
+| **Optional schema tap**: the collector can copy what it receives, before filtering, to the existing probe receiver. | It confirms a harness's real attribute set, including keys the allow-list drops, without storing their values. It reuses the probe instead of adding another tool. |
+| **`github-copilot` → `github-copilot-runtime`** (was `copilot-cli`). | The same `service.name` comes from the standalone Copilot CLI and from VS Code's embedded agent host, so calling it `copilot-cli` would misattribute VS Code work. No verified attribute separates them, so the label is neutral. The raw `service.name` stays on every series. |
+| **Every Copilot query groups by `workbench_harness`.** The first version selected `gen_ai.*` / `copilot_chat.*` series by name alone, and so did the coverage rows. | With two harnesses emitting the same GenAI metric names, a name-only query would have merged the runtime's series into the "VS Code" numbers. The selftest now sends a `github-copilot` copy of the VS Code fixture under another task and checks that the rows stay separate. |
+| **The VS Code setup needs a full restart, not Reload Window.** | First real attempt, 2026-11-03: the extension host logged its OTLP exporter enabled for `127.0.0.1:4318`, but the collector received nothing (no receiver counters). The request ran in VS Code's agent host, a shared process started 2026-11-01 before the settings existed. Reload Window restarts the extension host only. Whether a restart fixes it has not been verified yet. |
 
 ## Open questions the first real captures must answer
 

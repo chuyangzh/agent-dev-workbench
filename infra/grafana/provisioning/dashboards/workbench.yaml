@@ -1,0 +1,15 @@
+# Provisions the workbench dashboards from infra/grafana/dashboards (mounted
+# read-only at /otel-lgtm/workbench-dashboards). Edits made in the Grafana UI
+# are not saved back; change the JSON file and Grafana reloads it.
+apiVersion: 1
+
+providers:
+  - name: agent-dev-workbench
+    folder: Agent Dev Workbench
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 15
+    options:
+      path: /otel-lgtm/workbench-dashboards
+      foldersFromFilesStructure: false

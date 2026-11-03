@@ -115,6 +115,22 @@ To capture, point an `otlp-http` exporter with `protocol = "json"` at
 key shape allows. Confirm the exact TOML shape for 0.166.0 before using it. The
 probe's coverage table already lists the documented `codex.*` events.
 
+## With the monitoring stack (schema tap)
+
+While the stack in `infra/` is running, the collector owns port 4318. Run the
+probe on another port and let the collector copy what it receives to it:
+
+```powershell
+probe receive -Port 4319 -Label vscode                                       # terminal A
+powershell -ExecutionPolicy Bypass -File .\infra\stack.ps1 up -SchemaTap     # terminal B
+```
+
+Harnesses then export to the stack as usual (`http://127.0.0.1:4318`). The tap sends
+the probe the telemetry *before* the collector filters it, as OTLP/JSON whatever the
+client's protocol, so `probe schema` also shows keys that the stack drops. Run
+`stack.ps1 up` without `-SchemaTap` to turn the tap off. See
+[docs/monitoring.md](../docs/monitoring.md#confirm-a-harnesss-real-schema-schema-tap).
+
 ## What gets stored
 
 | Carrier | In `otlp.jsonl` and reports |
@@ -147,7 +163,8 @@ Never commit `captures/`.
 ## Troubleshooting
 
 - *Port in use:* the receiver binds exclusively and exits with WinError 10048.
-  Use `-Port 4319` on both `receive` and `claude`/`vscode-settings`.
+  Use `-Port 4319` on both `receive` and `claude`/`vscode-settings`. The monitoring
+  stack's collector uses 4318 while it runs.
 - *Nothing from Claude Code:* metrics export every 10 s and logs every 5 s. Set
   `$env:CLAUDE_CODE_OTEL_DIAG_STDERR='1'` before `probe claude` to see exporter
   errors.

@@ -1,0 +1,14 @@
+# Overlay used by `stack.ps1 up -SchemaTap`. Adds collector/schema-tap.yaml,
+# which copies received telemetry to the probe receiver on the host
+# (probe/otel_probe.py, loopback). See that file for what it does and does not store.
+services:
+  otel-collector:
+    command:
+      - "--config=/etc/otelcol-contrib/config.yaml"
+      - "--config=/etc/otelcol-contrib/schema-tap.yaml"
+    environment:
+      ADW_PROBE_PORT: ${ADW_PROBE_PORT:-4319}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./collector/schema-tap.yaml:/etc/otelcol-contrib/schema-tap.yaml:ro

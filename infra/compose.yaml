@@ -1,0 +1,114 @@
+# agent-dev-workbench local monitoring stack.
+#
+# Adapted from microsoft/hve-core examples/compose.yaml (MIT), commit
+# b3541b6d18fef7418d9b1f16e51d0dfe5cd07009. Copyright (c) Microsoft Corporation.
+# See THIRD_PARTY_NOTICES.md for the license text and the full list of changes.
+#
+# Shape kept from hve-core: a filtering OpenTelemetry Collector is the only OTLP
+# ingress, in front of one grafana/otel-lgtm container (Grafana, Prometheus,
+# Tempo, Loki). Both images are pinned by digest. Every published port binds
+# 127.0.0.1. Grafana credentials are required, and Grafana's database has its
+# own volume so the configured credential is the one Grafana adopts.
+#
+# Changed here (details in THIRD_PARTY_NOTICES.md):
+#   - Prometheus (9090) and Tempo (3200) are NOT published. otel-lgtm starts
+#     Prometheus with its OTLP and remote-write receivers enabled, so a
+#     published 9090 would let any local process write past the collector's
+#     filter. Reads go through authenticated Grafana instead.
+#   - Volumes are project-managed, not external. The project name is fixed
+#     below, so a plain `up` always binds the same volumes, and the selftest
+#     gets its own volumes by using a different project name (-p).
+#   - Host ports are overridable (ADW_*_PORT) so the selftest stack can run on
+#     other ports next to this one.
+#   - Credentials come from infra/.env (gitignored), written by `stack.ps1 init`.
+#   - The workbench dashboard is provisioned from files in ./grafana.
+#   - Grafana's usage reporting, update checks and plugin preinstall are off,
+#     so a local stack does not phone home or download plugins at start.
+#   - Prometheus also gets created-timestamp-zero-ingestion so a counter's
+#     first export counts toward increase() instead of being lost.
+#
+# Start, stop and verify with infra/stack.ps1. See docs/monitoring.md.
+
+name: agent-dev-workbench
+
+services:
+  otel-collector:
+    # otel/opentelemetry-collector-contrib:0.158.0
+    image: otel/opentelemetry-collector-contrib@sha256:c5918f78992ee73b0d6f0e599423ac5ec52dd5d9726733114d6eca53d5a32ed5
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    ports:
+      # The only OTLP ingress for the stack, loopback only.
+      - "127.0.0.1:${ADW_OTLP_GRPC_PORT:-4317}:4317"
+      - "127.0.0.1:${ADW_OTLP_HTTP_PORT:-4318}:4318"
+    volumes:
+      - ./collector/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    networks:
+      - telemetry
+    mem_limit: 512m
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      lgtm:
+        condition: service_healthy
+
+  lgtm:
+    # grafana/otel-lgtm:0.29.2 (Grafana 13.1.0, Prometheus 3.13.1, Tempo 3.0.2, Loki 3.7.3)
+    image: grafana/otel-lgtm@sha256:af7242c1a9608faf6d26e6f235392fd0c32b67258228f9a3cfc96e724974930c
+    restart: unless-stopped
+    ports:
+      # Grafana only. Prometheus, Tempo and Loki stay on the internal network.
+      - "127.0.0.1:${ADW_GRAFANA_PORT:-3000}:3000"
+    networks:
+      - telemetry
+    environment:
+      # The image enables anonymous Admin access and hides the login form. All
+      # three flags are needed to require a login.
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_AUTH_DISABLE_LOGIN_FORM: "false"
+      GF_AUTH_BASIC_ENABLED: "true"
+      # Applied only when Grafana creates its database; see the grafana-db volume.
+      GF_SECURITY_ADMIN_USER: ${ADW_GRAFANA_USER:?run .\infra\stack.ps1 init to create infra\.env}
+      GF_SECURITY_ADMIN_PASSWORD: ${ADW_GRAFANA_PASSWORD:?run .\infra\stack.ps1 init to create infra\.env}
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      # otlp-deltatocumulative: Prometheus otherwise drops delta metrics, and a
+      # dropped one can fail the whole batch (hve-core finding).
+      # created-timestamp-zero-ingestion: writes a zero at each series' OTLP
+      # start time so the first export is not lost to increase().
+      # 120d retention so monthly totals are not truncated (hve-core).
+      # promql-extended-range-selectors: enables `increase(x[range] anchored)`,
+      # an exact (non-extrapolated) increase, used for token totals.
+      PROMETHEUS_EXTRA_ARGS: "--enable-feature=otlp-deltatocumulative --enable-feature=created-timestamp-zero-ingestion --enable-feature=promql-extended-range-selectors --storage.tsdb.retention.time=120d"
+    volumes:
+      - telemetry:/data
+      - grafana-db:/data/grafana/data
+      - ./grafana/provisioning/dashboards/workbench.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/workbench.yaml:ro
+      - ./grafana/dashboards:/otel-lgtm/workbench-dashboards:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sf http://localhost:3000/api/health && curl -sf http://localhost:9090/-/ready && curl -sf http://localhost:3100/ready && curl -sf http://localhost:3200/ready",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+
+networks:
+  telemetry:
+    driver: bridge
+
+volumes:
+  # Prometheus, Tempo and Loki data. Removed only by `stack.ps1 down -DeleteData`.
+  telemetry: {}
+  # Grafana's database (users, preferences). Separate so a new stack adopts the
+  # credential in infra/.env.
+  grafana-db: {}

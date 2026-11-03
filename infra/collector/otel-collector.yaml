@@ -1,0 +1,309 @@
+# OpenTelemetry Collector policy for the agent-dev-workbench local stack.
+#
+# Adapted from microsoft/hve-core examples/otel-collector-local.yaml (MIT),
+# commit b3541b6d18fef7418d9b1f16e51d0dfe5cd07009. Copyright (c) Microsoft
+# Corporation. License text and the full change list: THIRD_PARTY_NOTICES.md.
+#
+# The only OTLP listener published on the host. Nothing reaches storage without
+# passing this file. Processing order, per signal:
+#
+#   1. transform/workbench  derive workbench.harness from service.name, mark
+#                           provenance, default the task to "unattributed".
+#                           Metrics also get those three as data point labels.
+#   2. transform/resource   fail-closed resource allow-list (keep_keys).
+#   3. redaction/<signal>   fail-closed attribute allow-list (hve-core), one per
+#                           signal so join IDs (session.id, prompt.id) can live
+#                           on spans and logs but never become metric labels.
+#   4. transform/scrub      carriers the allow-list cannot reach (hve-core),
+#                           widened to keep span and event *names* the
+#                           dashboard reads.
+#
+# Requires the Contrib distribution (redaction is not in core).
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 20
+
+  # --- 1. Workbench labels --------------------------------------------------
+  # workbench.harness comes from service.name, not from the sender, so a
+  # mislabelled launcher cannot move data between harnesses. An unknown
+  # service lands in "other" rather than being guessed.
+  # workbench.provenance is "synthetic" only when the sender marked the
+  # resource workbench.fixture=synthetic (the repo's fixtures do). Anything
+  # else arrived on the loopback port and is "captured"; that is not proof of
+  # authenticity, because any local process can post here.
+  # workbench.task.id is user-chosen. Values outside [A-Za-z0-9._-]{1,64}
+  # become "invalid" so a stray path or prompt cannot become a label.
+  transform/workbench:
+    error_mode: ignore
+    trace_statements:
+      - context: resource
+        statements: &workbench_resource
+          - set(resource.attributes["workbench.provenance"], "captured")
+          - set(resource.attributes["workbench.provenance"], "synthetic") where resource.attributes["workbench.fixture"] == "synthetic"
+          - set(resource.attributes["workbench.task.id"], "unattributed") where resource.attributes["workbench.task.id"] == nil or resource.attributes["workbench.task.id"] == ""
+          - set(resource.attributes["workbench.task.id"], "invalid") where not IsString(resource.attributes["workbench.task.id"])
+          - set(resource.attributes["workbench.task.id"], "invalid") where not IsMatch(resource.attributes["workbench.task.id"], "^[A-Za-z0-9._-]{1,64}$")
+          - set(resource.attributes["workbench.harness"], "other")
+          - set(resource.attributes["workbench.harness"], "vscode-copilot-chat") where resource.attributes["service.name"] == "copilot-chat"
+          # service.name "github-copilot" is used by the GitHub Copilot runtime both
+          # as the standalone Copilot CLI and as VS Code's embedded agent host
+          # (Copilot CLI sessions inside VS Code). No verified attribute tells the
+          # two apart yet, so the label names the runtime, not the host app. The
+          # raw service.name is still stored (Prometheus job / service_name).
+          # Split this only on a resource attribute seen in a real capture.
+          - set(resource.attributes["workbench.harness"], "github-copilot-runtime") where resource.attributes["service.name"] == "github-copilot"
+          - set(resource.attributes["workbench.harness"], "claude-code") where IsMatch(resource.attributes["service.name"], "^claude-code")
+          - set(resource.attributes["workbench.harness"], "codex") where IsMatch(resource.attributes["service.name"], "^codex")
+    log_statements:
+      - context: resource
+        statements: *workbench_resource
+    metric_statements:
+      - context: resource
+        statements: *workbench_resource
+      # Metric labels. task.id is the one identifier allowed on metrics: it is
+      # chosen by the user per piece of work (tens of values, not one per
+      # session), and the per-task token view needs it on the canonical token
+      # series. session.id and every other ID stay off metrics (redaction/metrics).
+      - context: datapoint
+        statements:
+          - set(datapoint.attributes["workbench.task.id"], resource.attributes["workbench.task.id"])
+          - set(datapoint.attributes["workbench.harness"], resource.attributes["workbench.harness"])
+          - set(datapoint.attributes["workbench.provenance"], resource.attributes["workbench.provenance"])
+
+  # --- 2. Resource allow-list ----------------------------------------------
+  # Explicit keep_keys so resource identity (service.instance.id, host.name,
+  # user identity, workspace paths) cannot reach Prometheus target_info or
+  # promoted labels, whatever the redaction processor does with resources.
+  transform/resource:
+    error_mode: ignore
+    metric_statements:
+      - context: resource
+        statements:
+          - keep_keys(resource.attributes, ["service.name", "service.namespace", "service.version", "telemetry.sdk.language", "telemetry.sdk.name", "telemetry.sdk.version", "workbench.task.id", "workbench.harness", "workbench.provenance"])
+    trace_statements:
+      - context: resource
+        statements: &resource_keep_with_session
+          - keep_keys(resource.attributes, ["service.name", "service.namespace", "service.version", "telemetry.sdk.language", "telemetry.sdk.name", "telemetry.sdk.version", "workbench.task.id", "workbench.harness", "workbench.provenance", "session.id"])
+    log_statements:
+      - context: resource
+        statements: *resource_keep_with_session
+
+  # --- 3. Attribute allow-lists (hve-core redaction, split per signal) ------
+  # allow_all_keys: false makes allowed_keys authoritative: an attribute this
+  # file has never seen is dropped. Adding a key is a decision to store it.
+  redaction/metrics:
+    allow_all_keys: false
+    allowed_keys: &metric_keys
+      # Resource identity (also enforced by transform/resource).
+      - service.name
+      - service.namespace
+      - service.version
+      - telemetry.sdk.language
+      - telemetry.sdk.name
+      - telemetry.sdk.version
+      # Workbench labels (bounded; see transform/workbench).
+      - workbench.task.id
+      - workbench.harness
+      - workbench.provenance
+      # GenAI / Copilot dimensions. Names only, no content.
+      - gen_ai.provider.name
+      - gen_ai.operation.name
+      - gen_ai.request.model
+      - gen_ai.response.model
+      - gen_ai.token.type
+      - gen_ai.agent.name
+      - gen_ai.tool.name
+      - gen_ai.tool.type
+      - copilot_chat.mode_name
+      - github.copilot.agent.type
+      - success
+      - error.type
+      # Claude Code metric dimensions (claude_code.token.usage and friends).
+      - type
+      - model
+      - query_source
+      - tool_name
+      - decision
+      - source
+      - start_type
+    blocked_values: &blocked_values
+      # hve-core's credential shapes, unchanged.
+      - "gh[pousr]_[0-9A-Za-z]{16,}"
+      - "github_pat_[0-9A-Za-z_]{20,}"
+      - "xox[baprs]-[0-9A-Za-z-]{10,}"
+      - "A(?:KIA|SIA)[0-9A-Z]{16}"
+      - "eyJ[0-9A-Za-z_-]{10,}\\.[0-9A-Za-z_-]{10,}\\.[0-9A-Za-z_-]*"
+      - "(?i)(?:AccountKey|SharedAccessKey|SharedAccessSignature)=[0-9A-Za-z+/=%&-]{16,}"
+      - "sk-(?:ant-)?[0-9A-Za-z_-]{20,}"
+      - "AIza[0-9A-Za-z_-]{35}"
+      - "(?i)-----BEGIN [A-Z ]*PRIVATE KEY-----"
+      - "(?i)\\b(?:bearer|authorization|api[_-]?key|secret|password)\\b\\s*[:=]\\s*\\S+"
+    summary: silent
+
+  redaction/traces:
+    allow_all_keys: false
+    allowed_keys: &span_keys
+      - service.name
+      - service.namespace
+      - service.version
+      - telemetry.sdk.language
+      - telemetry.sdk.name
+      - telemetry.sdk.version
+      - workbench.task.id
+      - workbench.harness
+      - workbench.provenance
+      # Join keys. Opaque IDs, fine on spans and logs, never on metrics.
+      - session.id
+      - gen_ai.conversation.id
+      - gen_ai.tool.call.id
+      # Model and token accounting (hve-core list).
+      - gen_ai.provider.name
+      - gen_ai.operation.name
+      - gen_ai.request.model
+      - gen_ai.response.model
+      - gen_ai.response.finish_reasons
+      - gen_ai.usage.input_tokens
+      - gen_ai.usage.output_tokens
+      - gen_ai.usage.cache_read.input_tokens
+      - gen_ai.usage.cache_creation.input_tokens
+      - gen_ai.token.type
+      # Agent and tool identity, names only (hve-core list).
+      - gen_ai.agent.name
+      - gen_ai.tool.name
+      - gen_ai.tool.type
+      - copilot_chat.mode_name
+      - copilot_chat.turn_count
+      - github.copilot.agent.type
+      - error.type
+    blocked_values: *blocked_values
+    summary: silent
+
+  redaction/logs:
+    allow_all_keys: false
+    allowed_keys:
+      - service.name
+      - service.namespace
+      - service.version
+      - telemetry.sdk.language
+      - telemetry.sdk.name
+      - telemetry.sdk.version
+      - workbench.task.id
+      - workbench.harness
+      - workbench.provenance
+      - session.id
+      - gen_ai.conversation.id
+      - gen_ai.operation.name
+      - gen_ai.request.model
+      - gen_ai.response.model
+      - gen_ai.usage.input_tokens
+      - gen_ai.usage.output_tokens
+      - gen_ai.agent.name
+      - gen_ai.tool.name
+      - error.type
+      # Claude Code events (claude_code.api_request, tool_result, api_error,
+      # tool_decision, user_prompt). Numbers, enums and IDs only: prompt text,
+      # tool parameters, error messages and cost are not listed.
+      - event.name
+      - event.sequence
+      - prompt.id
+      - model
+      - query_source
+      - input_tokens
+      - output_tokens
+      - cache_read_tokens
+      - cache_creation_tokens
+      - duration_ms
+      - tool_name
+      - success
+      - decision
+      - decision_type
+      - decision_source
+      - source
+      - status_code
+      - attempt
+      - prompt_length
+      - tool_result_size_bytes
+    blocked_values: *blocked_values
+    summary: silent
+
+  # --- 4. Carriers the allow-list cannot reach (hve-core transform/scrub) ---
+  # Kept from hve-core: status messages, trace state, span event names, log
+  # severity text and metric descriptions are overwritten. Changed: span names
+  # of the GenAI operation families and event-name-shaped log bodies survive,
+  # because the dashboard reads them; metric units survive, because Prometheus
+  # derives the series name suffix and the value scale (ms vs s) from them.
+  #
+  # Explicit context groups. As one flat list (hve-core's form), the pinned
+  # collector inferred the spanevent context for all four trace statements, so
+  # the span statements ran only on spans that have events: the selftest's
+  # status-message canary reached Tempo until this was split.
+  transform/scrub:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - set(span.name, "[redacted]") where not IsMatch(span.name, "^(invoke_agent|chat|execute_tool|execute_hook|embeddings|claude_code\\.[a-z_.]+)( [A-Za-z0-9 _.:@/()-]{1,128})?$")
+          - set(span.status.message, "[redacted]") where span.status.message != ""
+          - set(span.trace_state, "") where span.trace_state != ""
+      - context: spanevent
+        statements:
+          - set(spanevent.name, "[redacted]")
+    log_statements:
+      # Two steps: IsMatch errors on a map body, and error_mode: ignore would
+      # then skip the statement and keep the body. Non-strings go first.
+      - set(log.body, "[redacted]") where log.body != nil and not IsString(log.body)
+      - set(log.body, "[redacted]") where IsString(log.body) and not IsMatch(log.body, "^(claude_code|codex|copilot_chat|gen_ai)\\.[a-z_.]{1,64}$")
+      - set(log.severity_text, "[redacted]") where log.severity_text != ""
+      - set(log.event_name, "[redacted]") where log.event_name != "" and not IsMatch(log.event_name, "^(claude_code|codex|copilot_chat|gen_ai)\\.[a-z_.]{1,64}$")
+    metric_statements:
+      - set(metric.description, "[redacted]") where metric.description != ""
+
+  # Cost figures are not stored: claude_code.cost.usage is documented as an
+  # approximation, and the workbench makes no cost claims (docs/design.md).
+  filter/no_cost:
+    error_mode: ignore
+    metrics:
+      metric:
+        - name == "claude_code.cost.usage"
+
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+
+exporters:
+  # Internal Compose network only.
+  otlp_grpc/lgtm:
+    endpoint: lgtm:4317
+    tls:
+      insecure: true
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/workbench, transform/resource, redaction/traces, transform/scrub, batch]
+      exporters: [otlp_grpc/lgtm]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, filter/no_cost, transform/workbench, transform/resource, redaction/metrics, transform/scrub, batch]
+      exporters: [otlp_grpc/lgtm]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/workbench, transform/resource, redaction/logs, transform/scrub, batch]
+      exporters: [otlp_grpc/lgtm]
