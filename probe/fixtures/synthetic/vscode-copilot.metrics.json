@@ -1,0 +1,89 @@
+{
+  "resourceMetrics": [
+    {
+      "resource": {
+        "attributes": [
+          {"key": "service.name", "value": {"stringValue": "copilot-chat"}},
+          {"key": "service.version", "value": {"stringValue": "0.72.0"}},
+          {"key": "session.id", "value": {"stringValue": "synthetic-window-0001"}},
+          {"key": "workbench.fixture", "value": {"stringValue": "synthetic"}},
+          {"key": "workbench.task.id", "value": {"stringValue": "fixture-task-1"}},
+          {"key": "workbench.harness", "value": {"stringValue": "vscode-copilot-chat"}}
+        ]
+      },
+      "scopeMetrics": [
+        {
+          "scope": {"name": "copilot-chat", "version": "0.72.0"},
+          "metrics": [
+            {
+              "name": "gen_ai.client.token.usage",
+              "unit": "{token}",
+              "description": "Synthetic fixture: token counts per model call",
+              "histogram": {
+                "aggregationTemporality": 2,
+                "dataPoints": [
+                  {"startTimeUnixNano": "1793664000000000000", "timeUnixNano": "1793664010000000000", "count": "2", "sum": 1500, "bucketCounts": ["0", "2", "0"], "explicitBounds": [256, 4096],
+                   "attributes": [{"key": "gen_ai.operation.name", "value": {"stringValue": "chat"}}, {"key": "gen_ai.provider.name", "value": {"stringValue": "github"}}, {"key": "gen_ai.request.model", "value": {"stringValue": "synthetic-model-a"}}, {"key": "gen_ai.token.type", "value": {"stringValue": "input"}}]},
+                  {"startTimeUnixNano": "1793664000000000000", "timeUnixNano": "1793664010000000000", "count": "2", "sum": 300, "bucketCounts": ["2", "0", "0"], "explicitBounds": [256, 4096],
+                   "attributes": [{"key": "gen_ai.operation.name", "value": {"stringValue": "chat"}}, {"key": "gen_ai.provider.name", "value": {"stringValue": "github"}}, {"key": "gen_ai.request.model", "value": {"stringValue": "synthetic-model-a"}}, {"key": "gen_ai.token.type", "value": {"stringValue": "output"}}]},
+                  {"startTimeUnixNano": "1793664000000000000", "timeUnixNano": "1793664010000000000", "count": "1", "sum": 600, "bucketCounts": ["0", "1", "0"], "explicitBounds": [256, 4096],
+                   "attributes": [{"key": "gen_ai.operation.name", "value": {"stringValue": "chat"}}, {"key": "gen_ai.provider.name", "value": {"stringValue": "github"}}, {"key": "gen_ai.request.model", "value": {"stringValue": "synthetic-model-b"}}, {"key": "gen_ai.token.type", "value": {"stringValue": "input"}}]},
+                  {"startTimeUnixNano": "1793664000000000000", "timeUnixNano": "1793664010000000000", "count": "1", "sum": 120, "bucketCounts": ["1", "0", "0"], "explicitBounds": [256, 4096],
+                   "attributes": [{"key": "gen_ai.operation.name", "value": {"stringValue": "chat"}}, {"key": "gen_ai.provider.name", "value": {"stringValue": "github"}}, {"key": "gen_ai.request.model", "value": {"stringValue": "synthetic-model-b"}}, {"key": "gen_ai.token.type", "value": {"stringValue": "output"}}]}
+                ]
+              }
+            },
+            {
+              "name": "gen_ai.client.operation.duration",
+              "unit": "s",
+              "description": "Synthetic fixture: model call duration",
+              "histogram": {
+                "aggregationTemporality": 2,
+                "dataPoints": [
+                  {"startTimeUnixNano": "1793664000000000000", "timeUnixNano": "1793664010000000000", "count": "3", "sum": 6.8, "bucketCounts": ["0", "3", "0"], "explicitBounds": [1, 10],
+                   "attributes": [{"key": "gen_ai.operation.name", "value": {"stringValue": "chat"}}, {"key": "gen_ai.provider.name", "value": {"stringValue": "github"}}, {"key": "gen_ai.request.model", "value": {"stringValue": "synthetic-model-a"}}]}
+                ]
+              }
+            },
+            {
+              "name": "copilot_chat.tool.call.count",
+              "description": "Synthetic fixture: tool invocations by name and success",
+              "sum": {
+                "aggregationTemporality": 2,
+                "isMonotonic": true,
+                "dataPoints": [
+                  {"startTimeUnixNano": "1793664000000000000", "timeUnixNano": "1793664010000000000", "asInt": "1", "attributes": [{"key": "gen_ai.tool.name", "value": {"stringValue": "readFile"}}, {"key": "success", "value": {"boolValue": true}}]},
+                  {"startTimeUnixNano": "1793664000000000000", "timeUnixNano": "1793664010000000000", "asInt": "1", "attributes": [{"key": "gen_ai.tool.name", "value": {"stringValue": "runCommand"}}, {"key": "success", "value": {"boolValue": false}}]},
+                  {"startTimeUnixNano": "1793664000000000000", "timeUnixNano": "1793664010000000000", "asInt": "1", "attributes": [{"key": "gen_ai.tool.name", "value": {"stringValue": "runSubagent"}}, {"key": "success", "value": {"boolValue": true}}]}
+                ]
+              }
+            },
+            {
+              "name": "copilot_chat.tool.call.duration",
+              "unit": "ms",
+              "description": "Synthetic fixture: tool latency",
+              "histogram": {
+                "aggregationTemporality": 2,
+                "dataPoints": [
+                  {"startTimeUnixNano": "1793664000000000000", "timeUnixNano": "1793664010000000000", "count": "1", "sum": 50, "bucketCounts": ["1", "0"], "explicitBounds": [1000], "attributes": [{"key": "gen_ai.tool.name", "value": {"stringValue": "readFile"}}]},
+                  {"startTimeUnixNano": "1793664000000000000", "timeUnixNano": "1793664010000000000", "count": "1", "sum": 1200, "bucketCounts": ["0", "1"], "explicitBounds": [1000], "attributes": [{"key": "gen_ai.tool.name", "value": {"stringValue": "runCommand"}}]},
+                  {"startTimeUnixNano": "1793664000000000000", "timeUnixNano": "1793664010000000000", "count": "1", "sum": 3000, "bucketCounts": ["0", "1"], "explicitBounds": [1000], "attributes": [{"key": "gen_ai.tool.name", "value": {"stringValue": "runSubagent"}}]}
+                ]
+              }
+            },
+            {
+              "name": "copilot_chat.agent.turn.count",
+              "description": "Synthetic fixture: model round trips per agent invocation",
+              "histogram": {
+                "aggregationTemporality": 2,
+                "dataPoints": [
+                  {"startTimeUnixNano": "1793664000000000000", "timeUnixNano": "1793664010000000000", "count": "2", "sum": 3, "bucketCounts": ["1", "1"], "explicitBounds": [1], "attributes": [{"key": "gen_ai.agent.name", "value": {"stringValue": "GitHub Copilot Chat"}}]}
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

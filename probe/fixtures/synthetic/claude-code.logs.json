@@ -1,0 +1,128 @@
+{
+  "resourceLogs": [
+    {
+      "resource": {
+        "attributes": [
+          {"key": "service.name", "value": {"stringValue": "claude-code"}},
+          {"key": "service.version", "value": {"stringValue": "2.1.317"}},
+          {"key": "os.type", "value": {"stringValue": "windows"}},
+          {"key": "host.arch", "value": {"stringValue": "amd64"}},
+          {"key": "workbench.fixture", "value": {"stringValue": "synthetic"}},
+          {"key": "workbench.task.id", "value": {"stringValue": "fixture-task-1"}},
+          {"key": "workbench.harness", "value": {"stringValue": "claude-code"}}
+        ]
+      },
+      "scopeLogs": [
+        {
+          "scope": {"name": "com.anthropic.claude_code.events", "version": "2.1.317"},
+          "logRecords": [
+            {
+              "timeUnixNano": "1793664000000000000",
+              "body": {"stringValue": "claude_code.user_prompt"},
+              "attributes": [
+                {"key": "event.name", "value": {"stringValue": "user_prompt"}},
+                {"key": "event.timestamp", "value": {"stringValue": "2026-11-03T00:00:00.000Z"}},
+                {"key": "event.sequence", "value": {"intValue": "0"}},
+                {"key": "session.id", "value": {"stringValue": "synthetic-session-1"}},
+                {"key": "prompt.id", "value": {"stringValue": "synthetic-prompt-1"}},
+                {"key": "terminal.type", "value": {"stringValue": "vscode"}},
+                {"key": "user.email", "value": {"stringValue": "canary@example.invalid"}},
+                {"key": "user.account_uuid", "value": {"stringValue": "synthetic-account"}},
+                {"key": "organization.id", "value": {"stringValue": "synthetic-org"}},
+                {"key": "user.id", "value": {"stringValue": "synthetic-device"}},
+                {"key": "prompt_length", "value": {"intValue": "64"}},
+                {"key": "prompt", "value": {"stringValue": "<REDACTED>"}}
+              ]
+            },
+            {
+              "timeUnixNano": "1793664004200000000",
+              "body": {"stringValue": "claude_code.api_request"},
+              "attributes": [
+                {"key": "event.name", "value": {"stringValue": "api_request"}},
+                {"key": "event.sequence", "value": {"intValue": "1"}},
+                {"key": "session.id", "value": {"stringValue": "synthetic-session-1"}},
+                {"key": "prompt.id", "value": {"stringValue": "synthetic-prompt-1"}},
+                {"key": "user.email", "value": {"stringValue": "canary@example.invalid"}},
+                {"key": "model", "value": {"stringValue": "synthetic-claude-model"}},
+                {"key": "query_source", "value": {"stringValue": "main"}},
+                {"key": "speed", "value": {"stringValue": "normal"}},
+                {"key": "request_id", "value": {"stringValue": "synthetic-request-1"}},
+                {"key": "input_tokens", "value": {"intValue": "1200"}},
+                {"key": "output_tokens", "value": {"intValue": "300"}},
+                {"key": "cache_read_tokens", "value": {"intValue": "5000"}},
+                {"key": "cache_creation_tokens", "value": {"intValue": "800"}},
+                {"key": "duration_ms", "value": {"intValue": "4200"}},
+                {"key": "cost_usd", "value": {"doubleValue": 0.0123}}
+              ]
+            },
+            {
+              "timeUnixNano": "1793664006000000000",
+              "body": {"stringValue": "claude_code.api_request"},
+              "attributes": [
+                {"key": "event.name", "value": {"stringValue": "api_request"}},
+                {"key": "event.sequence", "value": {"intValue": "2"}},
+                {"key": "session.id", "value": {"stringValue": "synthetic-session-1"}},
+                {"key": "prompt.id", "value": {"stringValue": "synthetic-prompt-1"}},
+                {"key": "model", "value": {"stringValue": "synthetic-claude-model"}},
+                {"key": "query_source", "value": {"stringValue": "subagent"}},
+                {"key": "agent_id", "value": {"stringValue": "synthetic-agent-1"}},
+                {"key": "request_id", "value": {"stringValue": "synthetic-request-2"}},
+                {"key": "input_tokens", "value": {"intValue": "400"}},
+                {"key": "output_tokens", "value": {"intValue": "80"}},
+                {"key": "cache_read_tokens", "value": {"intValue": "0"}},
+                {"key": "cache_creation_tokens", "value": {"intValue": "0"}},
+                {"key": "duration_ms", "value": {"intValue": "1500"}},
+                {"key": "cost_usd", "value": {"doubleValue": 0.002}}
+              ]
+            },
+            {
+              "timeUnixNano": "1793664007000000000",
+              "body": {"stringValue": "claude_code.tool_result"},
+              "attributes": [
+                {"key": "event.name", "value": {"stringValue": "tool_result"}},
+                {"key": "event.sequence", "value": {"intValue": "3"}},
+                {"key": "session.id", "value": {"stringValue": "synthetic-session-1"}},
+                {"key": "prompt.id", "value": {"stringValue": "synthetic-prompt-1"}},
+                {"key": "tool_name", "value": {"stringValue": "Bash"}},
+                {"key": "tool_use_id", "value": {"stringValue": "synthetic-tool-use-1"}},
+                {"key": "success", "value": {"stringValue": "false"}},
+                {"key": "duration_ms", "value": {"intValue": "900"}},
+                {"key": "error_type", "value": {"stringValue": "synthetic_error"}},
+                {"key": "error", "value": {"stringValue": "CANARY-ERROR: command failed in C:\\Users\\example"}}
+              ]
+            },
+            {
+              "timeUnixNano": "1793664007500000000",
+              "body": {"stringValue": "claude_code.tool_result"},
+              "attributes": [
+                {"key": "event.name", "value": {"stringValue": "tool_result"}},
+                {"key": "event.sequence", "value": {"intValue": "4"}},
+                {"key": "session.id", "value": {"stringValue": "synthetic-session-1"}},
+                {"key": "prompt.id", "value": {"stringValue": "synthetic-prompt-1"}},
+                {"key": "tool_name", "value": {"stringValue": "Read"}},
+                {"key": "tool_use_id", "value": {"stringValue": "synthetic-tool-use-2"}},
+                {"key": "success", "value": {"stringValue": "true"}},
+                {"key": "duration_ms", "value": {"intValue": "12"}}
+              ]
+            },
+            {
+              "timeUnixNano": "1793664008000000000",
+              "body": {"stringValue": "claude_code.api_error"},
+              "attributes": [
+                {"key": "event.name", "value": {"stringValue": "api_error"}},
+                {"key": "event.sequence", "value": {"intValue": "5"}},
+                {"key": "session.id", "value": {"stringValue": "synthetic-session-1"}},
+                {"key": "prompt.id", "value": {"stringValue": "synthetic-prompt-1"}},
+                {"key": "model", "value": {"stringValue": "synthetic-claude-model"}},
+                {"key": "status_code", "value": {"intValue": "529"}},
+                {"key": "attempt", "value": {"intValue": "1"}},
+                {"key": "duration_ms", "value": {"intValue": "300"}},
+                {"key": "error", "value": {"stringValue": "CANARY-ERROR synthetic overload message"}}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

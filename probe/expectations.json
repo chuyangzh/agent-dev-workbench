@@ -1,0 +1,70 @@
+{
+  "_about": "Documented signals per harness that the workbench dashboard would read. A probe report marks each one observed, 'not observed in this capture' (absent from this capture, which can mean idle rather than unsupported), or 'harness not in capture'. Names come from documentation, not from captured data. Settle them against a real capture before building panels on them.",
+  "checked": "2026-11-03",
+  "harnesses": {
+    "vscode-copilot-chat": {
+      "source": "https://code.visualstudio.com/docs/agents/guides/monitoring-agents",
+      "doc_last_updated": "2026-10-28",
+      "installed": "VS Code 1.144.0 with built-in GitHub.copilot-chat 0.72.0 (manifest declares github.copilot.chat.otel.*)",
+      "confidence": "documented; settings verified in the installed manifest; emission not yet captured",
+      "service_names": ["copilot-chat", "github-copilot"],
+      "spans": ["invoke_agent", "chat", "execute_tool", "execute_hook"],
+      "metrics": [
+        "gen_ai.client.token.usage",
+        "gen_ai.client.operation.duration",
+        "copilot_chat.tool.call.count",
+        "copilot_chat.tool.call.duration",
+        "copilot_chat.agent.invocation.duration",
+        "copilot_chat.agent.turn.count",
+        "copilot_chat.session.count",
+        "copilot_chat.time_to_first_token"
+      ],
+      "events": [
+        "gen_ai.client.inference.operation.details",
+        "copilot_chat.session.start",
+        "copilot_chat.tool.call",
+        "copilot_chat.agent.turn"
+      ]
+    },
+    "claude-code": {
+      "source": "https://code.claude.com/docs/en/monitoring-usage",
+      "installed": "Claude Code 2.1.317 (CLI)",
+      "confidence": "documented; several attribute lists came from a summary of the page and need a capture to confirm",
+      "service_names": ["claude-code", "claude-code-desktop"],
+      "spans": [
+        {"name": "claude_code.interaction", "optional": true, "note": "beta; needs CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1 and OTEL_TRACES_EXPORTER"},
+        {"name": "claude_code.llm_request", "optional": true, "note": "beta"},
+        {"name": "claude_code.tool", "optional": true, "note": "beta"}
+      ],
+      "metrics": [
+        "claude_code.session.count",
+        "claude_code.token.usage",
+        {"name": "claude_code.cost.usage", "optional": true, "note": "documented as an approximation; not charted"},
+        {"name": "claude_code.active_time.total", "optional": true}
+      ],
+      "events": [
+        "claude_code.user_prompt",
+        "claude_code.api_request",
+        "claude_code.tool_result",
+        {"name": "claude_code.api_error", "optional": true, "note": "only when an API call fails"},
+        {"name": "claude_code.tool_decision", "optional": true},
+        {"name": "claude_code.subagent_completed", "optional": true, "note": "total_tokens is the final request only; never sum it"}
+      ]
+    },
+    "codex": {
+      "source": "https://developers.openai.com/codex/config-advanced",
+      "installed": "codex-cli 0.166.0 at C:\\Users\\zcy16\\AppData\\Local\\Programs\\OpenAI\\Codex\\bin\\codex.exe (not resolvable through PATH in every shell; use the full path)",
+      "confidence": "low: names taken from a summarized read of the docs; the installed binary contains these event names and the documented [otel] keys, but emission is not yet captured",
+      "service_name_prefixes": ["codex"],
+      "spans": [],
+      "metrics": [],
+      "events": [
+        "codex.conversation_starts",
+        "codex.api_request",
+        "codex.user_prompt",
+        "codex.tool_decision",
+        "codex.tool_result"
+      ]
+    }
+  }
+}

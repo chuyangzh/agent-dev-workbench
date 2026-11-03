@@ -1,0 +1,8 @@
+# Probe captures come from real sessions. Even redacted at ingest they hold model
+# names, tool names and timings, and a --StoreRawValues or VS Code file-exporter
+# capture can hold prompts, paths and account identity. Never commit them.
+# A reviewed schema snapshot can be copied to docs/schemas/captured/ instead.
+probe/captures/
+
+__pycache__/
+*.py[cod]
