@@ -17,7 +17,7 @@ the project and verifies the existing probe milestone.
   <img src="docs/media/setup/orca-05-harness-suite.png" width="480" alt="Watch the handoff video: Orca's agent settings show Claude Code and Codex installed, with additional harnesses available to install.">
 </a>
 
-**[▶ Watch the recording · 3 min MP4](docs/media/orca-handoff-1080p.mp4?raw=1)**
+**[▶ Watch the recording · 3 min MP4](docs/media/orca-handoff-1080p.mp4(1)?raw=1)**
 · [Demo walkthrough and setup](docs/demos/orca-handoff.md)
 
 *Preview: Orca's harness options. Claude Code and Codex are the two used here;
